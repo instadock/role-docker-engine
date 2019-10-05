@@ -1,0 +1,11 @@
+{
+  {%- if docker_daemon_json_custom is defined -%}
+  {{ docker_daemon_json_custom | indent(2) }}
+  {%- endif -%}
+  "experimental": {{ docker_daemon_json_experimental | d('false') }},
+  "hosts": {{ docker_daemon_json_hosts | d('["unix:///var/run/docker.sock"]') }},
+  "labels": {{ docker_daemon_labels | to_json() }},
+  "log-driver": "{{ docker_log_driver | d('json-file') }}",
+  "log-opts": {{ docker_log_opts | d("{}") | trim() | indent(2) }},
+  "storage-driver": "overlay2"
+}

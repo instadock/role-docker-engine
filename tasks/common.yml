@@ -1,0 +1,52 @@
+---
+- name: "Create Directories"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+  loop:
+  - /etc/docker
+  - /etc/docker/certs.d
+  - /etc/systemd/system/docker.service.d
+
+- name: "Configure docker systemd overrides"
+  copy:
+    content: |
+      [Service]
+      # next two lines needed to allow /etc/docker/daemon.json to adjust hosts
+      ExecStart=
+      ExecStart=/usr/bin/dockerd
+    dest: /etc/systemd/system/docker.service.d/override.conf
+    force: yes
+    owner: root
+    mode: 0644
+  notify: ["Reload Systemd"]
+
+- name: "Create /etc/docker/daemon.json"
+  template:
+    src: "etc/docker/daemon.json.j2"
+    dest: /etc/docker/daemon.json
+    force: yes
+    owner: root
+    mode: 0644
+  notify: ["Restart Docker"]
+
+- name: 'Enable Docker'
+  systemd:
+    name: docker
+    daemon_reload: yes
+    enabled: yes
+    state: started
+
+- name: 'Add users to docker group'
+  user:
+    name: "{{item}}"
+    groups: docker
+    append: yes
+  loop: "{{docker_users}}"
+    
+
+
+

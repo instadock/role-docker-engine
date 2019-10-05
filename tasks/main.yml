@@ -1,0 +1,11 @@
+---
+
+- name: "Distribution specific Docker install"
+  include_tasks: "{{ ansible_pkg_mgr }}.yml"
+
+- name: "Common docker post-install setup"
+  include_tasks: "common.yml"
+
+- name: "Configure sysctl"
+  include_tasks: "sysctl.yml"
+

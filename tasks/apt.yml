@@ -1,0 +1,77 @@
+---
+- name: 'Remove old packages'
+  apt:
+    state: absent
+    force_apt_get: true
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+
+# uninstall docker-ce and docker-ce-cli if installing docker-ee
+- name: 'Remove old packages'
+  apt:
+    state: absent
+    force_apt_get: true
+    name:
+      - docker-ce
+      - docker-ce-cli
+  when: docker_edition == "ee"
+
+- name: 'Add Docker Repo Key'
+  apt_key:
+    url: "{{ docker_repo_url }}/{{ansible_distribution | lower}}/gpg"
+    state: present
+    id: "{{ docker_repo_key_id }}"
+
+- name: 'Add Docker Repo'
+  apt_repository:
+    repo: "deb [arch=amd64] {{ docker_repo_url }}/{{ ansible_distribution | lower}} {{ansible_distribution_release}} {{docker_release}}"
+    state: present
+    filename: "docker-{{ docker_edition }}"
+  register: docker_repo_result
+
+- name: 'Cache refresh'
+  apt:
+    update_cache: yes
+    force_apt_get: true
+  when: docker_repo_result.changed
+
+- name: 'Lookup current docker version'
+  shell: |
+    apt-cache show docker-{{ docker_edition }} \
+      | grep -e 'Version: \([0-9]*:\)\?{{ docker_version_search }}' \
+      {% if docker_allow_rc == false %} | grep -v -e '\.\(beta\|rc\|tp\)[0-9]*-' {%- endif %} \
+      | sed -e 's/.* //' \
+      | sort \
+      | tail -1
+  when: "docker_version_search is defined"
+  changed_when: false
+  register: docker_version_search_result
+  failed_when: "docker_version_search_result.rc > 0 or docker_version_search_result.stdout == ''"
+
+- name: 'Save current docker version'
+  set_fact:
+    docker_version: "{{ docker_version_search_result.stdout }}"
+  when: "docker_version_search is defined"
+
+- name: 'Remove version lock on docker'
+  command: >
+    apt-mark unhold docker-{{ docker_edition }}
+  changed_when: false
+
+- name: 'Install Docker Package'
+  apt:
+    state: present
+    force_apt_get: true
+    name:
+      - docker-{{docker_edition}}{% if docker_version is defined %}={{docker_version}}{% endif %}
+
+- name: 'Enable version lock on docker'
+  command: >
+    apt-mark hold docker-{{ docker_edition }}
+  changed_when: false
+
+

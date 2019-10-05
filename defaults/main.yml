@@ -1,0 +1,25 @@
+---
+docker_repo_url: https://download.docker.com/{{ ansible_system | lower }}
+# release should be stable, test, or nightly
+docker_release: stable
+docker_edition: ce
+# CE: 0EBFCD88, EE: 6D085F96
+docker_repo_key_id: "{% if docker_release == 'ce' %}0EBFCD88{% elif docker_release == 'ee' %}6D085F96{% endif %}"
+# Limit to a specific version
+# docker_version: 5:18.09.7
+# Or limit to a semver
+# docker_vesion_search: 18.09
+# set to true to allow beta, rc, and tp releases in version search
+docker_allow_rc: false
+docker_log_driver: json-file
+docker_log_opts: >
+  {
+    "max-size": "10m",
+    "max-file": "3",
+    "labels": "com.docker.stack.namespace,com.docker.swarm.service.name,environment"
+  }
+docker_users:
+  - "{{ansible_env.SUDO_USER}}"
+docker_daemon_labels:
+  - "from_ansible=true"
+
